@@ -1,0 +1,80 @@
+import java.fx.application.Application;
+import java.fx.scence.Scene;
+import java.fx.scene.control.*;
+import java.fx.scene.layout.VBox;
+import java.fx.stage.Stage;
+import java.fx.sql.*;
+
+public class StaffManager extends Application { 
+    private TextField idField = new TextField();
+    private TextField nameField = new TextField();
+    private TextField emailField = new TextField();
+    private Button viewButton = new Button("View"); 
+    private Button insertButton = new Button("Insert"); 
+    private Button updateButton = new Button("Update");
+    
+    public static void main(String[] args) { 
+      launch(args); // Began the JavaFX app 
+    } 
+    
+    @Override 
+    public void start(Stage primaryStage) { 
+      primaryStage.setTitle("Staff Manager"); 
+      
+      VBox layout = new VBox(10); 
+      layout.getChildren().addAll(
+          new Label("ID:"), idField,
+          new Label("Name:"), nameField,
+          new Label("Email:"), emailField,
+          viewButton, insertButton, updateButton
+      ); 
+      
+      viewButton.setOnAction(e -> viewStaff()); 
+      insertButton.setOnAction(e -> insertStaff()); 
+      updateButton.setOnAction(e -> updateButton());
+      
+      primaryStage.setScene(new Scene(layout, 300, 250)); 
+      primaryStage.show();
+    } 
+    
+    private void viewStaff() {
+        String id = idField.getText();
+        try (Connection conn = DBUtil.getConnection(); 
+             PreparedStatement stmt = conn.prepareStatement("SELECT* FROM Staff WHERE id = ?")) { 
+            stmt.setString(1, id);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) { 
+                nameField.setText(rs.getString("firstName") + " " + rs.getString("lastName"));
+                emailField.setText(rs.getString("email")); 
+            } else { 
+                showAlert("No staff found."); 
+            } 
+        } catch (SQLException e) { 
+            showAlert("Database error: " + e.getMessage());
+        } 
+    } 
+    
+    private void updateStaff() { 
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("UPDATE Staff SET firstName=?, email=? WHERE id=?")) { 
+            stmt.setString(1, nameField.getText()); 
+            stmt.setString(2, emailField.getText()); 
+            stmt.setString(3, idField.getText());
+            
+            int rows = stmt.executeUpdate();
+            if (rows > 0) { 
+                showAlert("Staff updates successfully!");
+            } else {
+                showAlert("No staff found."); 
+            } 
+        } catch (SQLException e) { 
+            showAlert("Error: " + e.getMessage()); 
+        } 
+      } 
+      
+      private void showAlert(String message) { 
+          Alert alert = new Alert(Alert.AlertType.INFORMATION, message); 
+          alert.showAndWait(); 
+      } 
+} 
